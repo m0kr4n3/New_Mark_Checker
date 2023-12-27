@@ -2,47 +2,55 @@ from selenium import webdriver
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.firefox.options import Options
 
 load_dotenv()
 
 email = os.environ.get("email")
 password = os.environ.get("password")
 
+def create_driver(headless=False):
+    options = Options()
 
-def get_last_note_date(browser):
+    if headless:
+        options.add_argument('-headless')
+
+    driver = webdriver.Firefox(options=options)
+    return driver
+
+
+def login():
+    browser.get("https://talents.esi.dz/accounts/login/")
+    username = browser.find_element("xpath",'//*[@id="username"]')
+    username.send_keys(email)
+    password_inp = browser.find_element("xpath",'//*[@id="password"]')
+    password_inp.send_keys(password)
+    submit = browser.find_element("xpath",'/html/body/div/div[2]/section/div[2]/div/div/form/button')
+    submit.click()
+
+
+def get_last_note_date():
     browser.get("https://talents.esi.dz/scolar/notifications")
-    last_note = browser.find_element_by_xpath(
+
+    last_note = browser.find_element("xpath",'/html/body/div/div[2]/section/div[2]/div/table/tbody/tr[1]/td[1]/p')
+
+    last_note_date = browser.find_element("xpath",
         '//*[@id="content"]/div/table/tbody/tr[1]/td[2]'
     )
 
-    its_date = last_note.text[:-5]
-    time_format = "%B %d, %Y, %H:%M"
-    t0 = datetime.strptime(its_date, time_format)
-    return t0
-
-
-def if_today(t0):
-    return t0.date() == datetime.today().date()
-
-
-def main():
-    s = Service("./chromedriver")
-    browser = webdriver.Chrome(service=s)
-
-    browser.get("https://talents.esi.dz/accounts/login/")
-    username = browser.find_element_by_xpath('//*[@id="id_username"]')
-    username.send_keys(email)
-    password_inp = browser.find_element_by_xpath('//*[@id="id_password"]')
-    password_inp.send_keys(password)
-    submit = browser.find_element_by_xpath('//*[@type="submit"]')
-    submit.click()
-
-    t0 = get_last_note_date(browser)
-    print(t0)
-    if if_today(t0):
-        print("There's a new note, go check it!")
+    last_note_date = last_note_date.text[:-5].strip()
+    last_note_date = last_note_date[:3] + last_note_date[4:]
+    time_format = "%b. %d, %Y, %H:%M"
+    t0 = datetime.strptime(last_note_date, time_format)
+    if t0.date() == datetime.today().date():
+        print("New note!")
+        print(last_note.text)
+    else:
+        print("No new note.")
 
 
 if __name__ == "__main__":
-    main()
+    browser = create_driver(headless=True)
+    login()
+    get_last_note_date()
+    
